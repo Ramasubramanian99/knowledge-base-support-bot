@@ -1,4 +1,4 @@
-[customer_service_bot]
+[project]
 name = "api"
 version = "0.1.0"
 description = "Backend system for customer_service_bot"
@@ -6,4 +6,6 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.141.1",
+    "pydantic-settings>=2.15.0",
+    "supabase>=2.31.0",
 ]
