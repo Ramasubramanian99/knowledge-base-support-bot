@@ -5,7 +5,7 @@ import { GitHub, LinkedIn } from "@mui/icons-material";
 
 const GITHUB_URL = "https://github.com/Ramasubramanian99/knowledge-base-support-bot";
 // TODO: replace with your LinkedIn profile URL
-const LINKEDIN_URL = "https://www.linkedin.com/in/your-profile";
+const LINKEDIN_URL = "https://www.linkedin.com/in/ramasubramanian7/";
 
 export function meta({ }: Route.MetaArgs) {
   return [
