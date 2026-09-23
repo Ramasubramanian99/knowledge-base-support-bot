@@ -8,18 +8,29 @@ export default function Header() {
 
       <AppBar position="static">
         <Toolbar >
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            <Link to="/">Customer service bot</Link>
+          <Typography
+            variant="h6"
+            component={Link}
+            to="/"
+            aria-label="Go to home page"
+            sx={{ color: "inherit", textDecoration: "none", cursor: "pointer" }}
+          >
+            Customer service bot
           </Typography>
-          <IconButton color="secondary" sx={{
-            "&:hover": {
-              bgcolor: "primary.main",
-              color: "secondary.dark"
-            }
-          }}>
-            <Link to="/help">
-              <Info />
-            </Link>
+          <Box sx={{ flexGrow: 1 }} />
+          <IconButton
+            component={Link}
+            to="/help"
+            aria-label="Help"
+            color="secondary"
+            sx={{
+              "&:hover": {
+                bgcolor: "primary.main",
+                color: "secondary.dark"
+              }
+            }}
+          >
+            <Info />
           </IconButton>
         </Toolbar>
       </AppBar>

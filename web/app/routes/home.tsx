@@ -1,6 +1,7 @@
 import Header from "~/components/header";
 import type { Route } from "./+types/home";
 import QueryBox from "~/components/queryBox";
+import IntroModal from "~/components/introModal";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -13,6 +14,7 @@ export default function Home() {
   return (
     <>
       <Header />
+      <IntroModal />
       <QueryBox />
     </>
   );

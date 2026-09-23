@@ -1,6 +1,5 @@
-import { IconButton, TextField, Toolbar } from "@mui/material";
-import AddIcon from '@mui/icons-material/Add';
-import { Send } from "@mui/icons-material";
+import { IconButton, InputAdornment, TextField, Toolbar } from "@mui/material";
+import { AttachFile, Send } from "@mui/icons-material";
 
 export default function QueryBox() {
   return (
@@ -10,16 +9,6 @@ export default function QueryBox() {
         className="gap-4"
         sx={{ bgcolor: "transparent", backgroundImage: "none", boxShadow: "none" }}
       >
-        <IconButton
-          sx={{
-            bgcolor: "primary.main",
-            color: "common.white",
-            // borderRadius: "50%",
-            "&:hover": { bgcolor: "primary.dark" },
-          }}
-        >
-          <AddIcon />
-        </IconButton>
         <TextField
           id="query"
           multiline
@@ -27,7 +16,22 @@ export default function QueryBox() {
           variant="filled"
           maxRows={4}
           fullWidth
-          slotProps={{ input: { disableUnderline: true } }}
+          slotProps={{
+            input: {
+              disableUnderline: true,
+              startAdornment: (
+                <InputAdornment position="start">
+                  <IconButton
+                    aria-label="Attach file"
+                    edge="start"
+                    sx={{ color: "grey.400", "&:hover": { color: "common.white" } }}
+                  >
+                    <AttachFile />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
+          }}
           sx={{
             "& .MuiFilledInput-root": {
               borderRadius: 2,
@@ -42,10 +46,22 @@ export default function QueryBox() {
           }}
         />
         <IconButton
+          aria-label="Send"
           sx={{
             bgcolor: "secondary.main",
             color: "common.white",
             borderRadius: "50%",
+            // Fixed square so the glyph sits dead centre in the circle.
+            width: 40,
+            height: 40,
+            p: 0,
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            // Track the last line of text as the field grows to 4 rows.
+            alignSelf: "flex-end",
+            mb: 1,
             "&:hover": { bgcolor: "secondary.dark" },
           }}
         >
