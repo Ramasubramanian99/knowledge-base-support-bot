@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Alert, Box, Chip, CircularProgress, IconButton, InputAdornment, TextField, Toolbar, Tooltip } from "@mui/material";
 import { AttachFile, ErrorOutlined, Send } from "@mui/icons-material";
 import { ACCEPTED_EXTENSIONS, MAX_UPLOADS, useSessionDocs } from "~/lib/sessionDocs";
@@ -22,9 +22,30 @@ function statusIcon(status: string) {
   return undefined;
 }
 
-export default function QueryBox() {
+type QueryBoxProps = {
+  onSend: (text: string) => void;
+  sending: boolean;
+};
+
+export default function QueryBox({ onSend, sending }: QueryBoxProps) {
   const { docs, uploading, error, canUpload, openDoc, removeDoc, uploadDoc } = useSessionDocs();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
+  const canSend = query.trim().length > 0 && !sending;
+
+  const submit = () => {
+    if (!canSend) return;
+    onSend(query);
+    setQuery("");
+  };
+
+  // Enter sends; Shift+Enter keeps the newline for multi-line questions.
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      submit();
+    }
+  };
 
   const handleFileChosen = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -34,7 +55,7 @@ export default function QueryBox() {
   };
 
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 mb-[5%] w-4/5">
+    <div className="mx-auto mb-[5%] w-4/5 shrink-0">
       {error && (
         <Alert severity="error" variant="outlined" sx={{ mb: 1 }}>
           {error}
@@ -75,6 +96,9 @@ export default function QueryBox() {
           variant="filled"
           maxRows={4}
           fullWidth
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={handleKeyDown}
           slotProps={{
             input: {
               disableUnderline: true,
@@ -119,6 +143,8 @@ export default function QueryBox() {
         />
         <IconButton
           aria-label="Send"
+          onClick={submit}
+          disabled={!canSend}
           sx={{
             bgcolor: "secondary.main",
             color: "common.white",
@@ -135,6 +161,7 @@ export default function QueryBox() {
             alignSelf: "flex-end",
             mb: 1,
             "&:hover": { bgcolor: "secondary.dark" },
+            "&.Mui-disabled": { bgcolor: "grey.800", color: "grey.600" },
           }}
         >
           <Send fontSize="small" />
