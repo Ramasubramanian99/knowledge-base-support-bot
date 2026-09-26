@@ -1,12 +1,29 @@
 import { useRef } from "react";
-import { Alert, Box, Chip, IconButton, InputAdornment, TextField, Toolbar } from "@mui/material";
-import { AttachFile, Send } from "@mui/icons-material";
-import { useSessionDocs } from "~/lib/sessionDocs";
+import { Alert, Box, Chip, CircularProgress, IconButton, InputAdornment, TextField, Toolbar, Tooltip } from "@mui/material";
+import { AttachFile, ErrorOutlined, Send } from "@mui/icons-material";
+import { ACCEPTED_EXTENSIONS, MAX_UPLOADS, useSessionDocs } from "~/lib/sessionDocs";
 
-const ACCEPTED_TYPES = ".pdf,.docx";
+const chipSx = {
+  bgcolor: "grey.900",
+  color: "grey.300",
+  "&.MuiChip-clickable:hover": { bgcolor: "grey.800" },
+  "& .MuiChip-icon": { color: "grey.500" },
+  "& .MuiChip-deleteIcon": {
+    color: "grey.500",
+    "&:hover": { color: "common.white" },
+  },
+};
+
+// Once the file is in storage the chip looks settled. "pending" (queued for
+// ingestion) isn't shown as busy.
+function statusIcon(status: string) {
+  if (status === "failed") return <ErrorOutlined fontSize="small" />;
+  if (status === "awaiting_upload") return <CircularProgress size={14} color="inherit" />;
+  return undefined;
+}
 
 export default function QueryBox() {
-  const { docs, error, removeDoc, uploadDoc } = useSessionDocs();
+  const { docs, uploading, error, canUpload, openDoc, removeDoc, uploadDoc } = useSessionDocs();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChosen = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,15 +45,21 @@ export default function QueryBox() {
           <Chip
             key={doc.id}
             label={doc.name}
+            icon={statusIcon(doc.status)}
+            title={doc.status === "failed" || doc.status === "awaiting_upload" ? doc.status : `Open ${doc.name}`}
+            // Nothing is in storage yet while a file is still awaiting upload.
+            onClick={doc.status === "awaiting_upload" ? undefined : () => openDoc(doc.id)}
             onDelete={() => removeDoc(doc.id)}
-            sx={{
-              bgcolor: "grey.900",
-              color: "grey.300",
-              "& .MuiChip-deleteIcon": {
-                color: "grey.500",
-                "&:hover": { color: "common.white" },
-              },
-            }}
+            sx={chipSx}
+          />
+        ))}
+        {uploading.map((name, index) => (
+          <Chip
+            key={`uploading-${index}`}
+            label={name}
+            icon={<CircularProgress size={14} color="inherit" />}
+            title="Uploading"
+            sx={{ ...chipSx, opacity: 0.6 }}
           />
         ))}
       </Box>
@@ -57,14 +80,26 @@ export default function QueryBox() {
               disableUnderline: true,
               startAdornment: (
                 <InputAdornment position="start">
-                  <IconButton
-                    aria-label="Attach file"
-                    edge="start"
-                    onClick={() => fileInputRef.current?.click()}
-                    sx={{ color: "grey.400", "&:hover": { color: "common.white" } }}
+                  <Tooltip
+                    title={canUpload ? "Attach a PDF or DOCX" : `Upload limit reached (${MAX_UPLOADS} per session). Remove one to add another.`}
                   >
-                    <AttachFile />
-                  </IconButton>
+                    {/* Span keeps the tooltip working while the button is disabled. */}
+                    <span>
+                      <IconButton
+                        aria-label="Attach file"
+                        edge="start"
+                        disabled={!canUpload}
+                        onClick={() => fileInputRef.current?.click()}
+                        sx={{
+                          color: "grey.400",
+                          "&:hover": { color: "common.white" },
+                          "&.Mui-disabled": { color: "grey.700" },
+                        }}
+                      >
+                        <AttachFile />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
                 </InputAdornment>
               ),
             },
@@ -109,7 +144,7 @@ export default function QueryBox() {
         type="file"
         hidden
         ref={fileInputRef}
-        accept={ACCEPTED_TYPES}
+        accept={ACCEPTED_EXTENSIONS}
         onChange={handleFileChosen}
       />
     </div>

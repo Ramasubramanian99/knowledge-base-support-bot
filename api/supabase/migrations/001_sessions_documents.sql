@@ -39,15 +39,15 @@ create index if not exists session_documents_session_idx
   on public.session_documents (session_id);
 
 -- Seed the four sample documents already sitting in the storage bucket.
--- Adjust the paths if they live somewhere other than defaults/ in the bucket.
+-- Paths are relative to the bucket root, where the sample files live.
 insert into public.documents (storage_path, original_name, content_type, is_default, status)
 values
-  ('defaults/sample_chat_transcript.docx',  'sample_chat_transcript.docx',
+  ('sample_chat_transcript.docx',  'sample_chat_transcript.docx',
    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', true, 'ready'),
-  ('defaults/sample_coverage_doc.pdf',      'sample_coverage_doc.pdf',
+  ('sample_coverage_doc.pdf',      'sample_coverage_doc.pdf',
    'application/pdf', true, 'ready'),
-  ('defaults/sample_phone_transcript.docx', 'sample_phone_transcript.docx',
+  ('sample_phone_transcript.docx', 'sample_phone_transcript.docx',
    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', true, 'ready'),
-  ('defaults/sample_policy_doc.pdf',        'sample_policy_doc.pdf',
+  ('sample_policy_doc.pdf',        'sample_policy_doc.pdf',
    'application/pdf', true, 'ready')
 on conflict (storage_path) do nothing;
