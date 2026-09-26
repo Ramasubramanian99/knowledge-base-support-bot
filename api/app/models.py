@@ -27,5 +27,9 @@ class InitUploadOut(BaseModel):
     token: str
 
 
+class DocumentUrl(BaseModel):
+    url: str
+
+
 class DocQuery(BaseModel):
     query: str

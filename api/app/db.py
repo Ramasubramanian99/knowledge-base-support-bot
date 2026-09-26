@@ -75,6 +75,23 @@ def unlink_document(session_id: str, document_id: UUID) -> bool:
     return bool(result.data)
 
 
+def count_session_uploads(session_id: str) -> int:
+    """Uploads this session owns. Their storage paths sit under the session id."""
+    supabase = get_supabase()
+    result = (
+        supabase.table("documents")
+        .select("id", count="exact")
+        .like("storage_path", f"{session_id}/%")
+        .execute()
+    )
+    return result.count or 0
+
+
+def is_session_upload(session_id: str, doc: dict) -> bool:
+    """True for files this session uploaded, as opposed to shared defaults."""
+    return doc["storage_path"].startswith(f"{session_id}/")
+
+
 def create_pending_document(session_id: str, filename: str, content_type: str, size: int) -> dict:
     """Reserve a document row and a storage path for an upload that has not happened yet."""
     supabase = get_supabase()
