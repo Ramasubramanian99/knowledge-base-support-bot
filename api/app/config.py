@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic import BaseSettings
 
 class Settings(BaseSettings):
     supabase_url: str
@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     gemini_api_key: str
 
     # Storage bucket holding both the default docs and session uploads.
-    storage_bucket: str = "documents"
+    storage_bucket: str = "RAG_files"
 
     # How long an anonymous session lives.
     session_ttl_hours: int = 1

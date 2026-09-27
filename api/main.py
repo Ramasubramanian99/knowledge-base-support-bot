@@ -6,7 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import db
 from app.config import settings
-from app.models import DocQuery, DocumentOut, InitUpload, InitUploadOut, SessionDocuments
+from app.models import (
+    DocQuery,
+    DocumentOut,
+    DocumentUrl,
+    InitUpload,
+    InitUploadOut,
+    SessionDocuments,
+)
 from app.session import get_session
 from app.supabase_client import get_supabase
 
@@ -15,6 +22,9 @@ ALLOWED = {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 }
 MAX_BYTES = 10 * 1024 * 1024
+MAX_UPLOADS = 5  # per session, on top of the shared defaults
+# Long enough to open the file, short enough that a leaked link goes stale.
+VIEW_URL_TTL_SECONDS = 300
 
 app = FastAPI()
 
@@ -53,15 +63,41 @@ def get_session_documents(session_id: str = Depends(get_session)):
         ],
     )
 
+@app.get("/session/documents/{document_id}/url", response_model=DocumentUrl)
+def get_document_url(document_id: UUID, session_id: str = Depends(get_session)):
+    """Short-lived signed link so the browser can open a document it can see."""
+    doc = db.get_session_document(session_id, document_id)
+    if not doc:
+        raise HTTPException(404, "Document not linked to this session")
+    if doc["status"] == "awaiting_upload":
+        raise HTTPException(409, "Document has not finished uploading")
+
+    signed = (
+        get_supabase()
+        .storage.from_(settings.storage_bucket)
+        .create_signed_url(doc["storage_path"], VIEW_URL_TTL_SECONDS)
+    )
+    if not signed.get("signedURL"):
+        raise HTTPException(404, "File not found in storage")
+    return DocumentUrl(url=signed["signedURL"])
+
 
 @app.delete("/session/documents/{document_id}", status_code=204)
 def remove_session_document(document_id: UUID, session_id: str = Depends(get_session)):
     """
-    Detach a document from this session. Only the relationship goes: shared
-    default documents stay in storage for every other session.
+    Remove a document from this session. The session's own uploads are deleted
+    outright, which frees an upload slot. Shared defaults are only detached, so
+    they stay in storage for every other session.
     """
-    if not db.unlink_document(session_id, document_id):
+    doc = db.get_session_document(session_id, document_id)
+    if not doc:
         raise HTTPException(404, "Document not linked to this session")
+
+    if db.is_session_upload(session_id, doc):
+        get_supabase().storage.from_(settings.storage_bucket).remove([doc["storage_path"]])
+        db.delete_document_row(document_id)  # cascades to session_documents
+    else:
+        db.unlink_document(session_id, document_id)
     return None
 
 
@@ -75,12 +111,15 @@ def init_upload(req: InitUpload, session_id: str = Depends(get_session)):
         raise HTTPException(415, "Unsupported file type")
     if req.size > MAX_BYTES:
         raise HTTPException(413, f"Max {MAX_BYTES // 1024 // 1024}MB")
+    if db.count_session_uploads(session_id) >= MAX_UPLOADS:
+        raise HTTPException(409, f"Upload limit reached ({MAX_UPLOADS} files per session)")
 
     reserved = db.create_pending_document(
         session_id, req.filename, req.content_type, req.size
     )
+    print(reserved)
     storage_path = reserved["storage_path"]
-
+    print(storage_path)
     signed = (
         get_supabase()
         .storage.from_(settings.storage_bucket)
