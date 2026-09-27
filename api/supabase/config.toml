@@ -415,8 +415,11 @@ enabled = true
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> aa7405c (WIP: API endpoints)
+=======
+>>>>>>> d6909d35c7f0b5a31c7b5948c34a808ccb8d1641
 
 [functions.remove-session-files]
 enabled = true
@@ -429,7 +432,10 @@ entrypoint = "./functions/remove-session-files/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/remove-session-files/*.html" ]
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 586278e (add db and apis)
 =======
 >>>>>>> aa7405c (WIP: API endpoints)
+=======
+>>>>>>> d6909d35c7f0b5a31c7b5948c34a808ccb8d1641
