@@ -2,7 +2,7 @@ import { Alert, Box, Typography } from "@mui/material";
 
 export const GITHUB_URL = "https://github.com/Ramasubramanian99/knowledge-base-support-bot";
 // TODO: replace with your LinkedIn profile URL
-export const LINKEDIN_URL = "https://www.linkedin.com/in/your-profile";
+export const LINKEDIN_URL = "https://www.linkedin.com/in/ramasubramanian7/";
 
 /**
  * Shared copy for the intro modal and the help page. Each piece is exported
