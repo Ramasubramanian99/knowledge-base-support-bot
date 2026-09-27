@@ -33,3 +33,8 @@ class DocumentUrl(BaseModel):
 
 class DocQuery(BaseModel):
     query: str
+
+
+class QueryAnswer(BaseModel):
+    answer: str
+    documents_in_scope: int

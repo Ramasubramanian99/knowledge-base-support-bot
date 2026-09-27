@@ -5,6 +5,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import db
+from app.answer import answer_question
 from app.config import settings
 from app.models import (
     DocQuery,
@@ -12,6 +13,7 @@ from app.models import (
     DocumentUrl,
     InitUpload,
     InitUploadOut,
+    QueryAnswer,
     SessionDocuments,
 )
 from app.session import get_session
@@ -160,8 +162,24 @@ def complete_upload(doc_id: UUID, session_id: str = Depends(get_session)):
     return {"status": "pending"}
 
 
-@app.post("/query")
+@app.post("/query", response_model=QueryAnswer)
 def query_from_chat(query: DocQuery, session_id: str = Depends(get_session)):
-    # TODO: retrieve context from this session's documents, then call Gemini.
-    docs = db.list_session_documents(session_id)
-    return {"answer": "", "documents_in_scope": len(docs)}
+    """Answer from the session's documents. Files still uploading are skipped."""
+    question = query.query.strip()
+    if not question:
+        raise HTTPException(422, "Question is empty")
+
+    docs = [
+        doc
+        for doc in db.list_session_documents(session_id)
+        if doc["status"] != "awaiting_upload"
+    ]
+    if not docs:
+        raise HTTPException(409, "Add a document before asking a question")
+
+    try:
+        answer = answer_question(question, docs)
+    except Exception as err:
+        print(f"query failed: {err!r}")
+        raise HTTPException(502, "Could not get an answer right now, please try again")
+    return QueryAnswer(answer=answer, documents_in_scope=len(docs))

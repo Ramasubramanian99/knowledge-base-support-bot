@@ -4,6 +4,7 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_key: str  # anon key for client-facing, service_role for server-trusted ops
     gemini_api_key: str
+    gemini_model: str = "gemini-3.6-flash"
 
     # Storage bucket holding both the default docs and session uploads.
     storage_bucket: str = "RAG_files"

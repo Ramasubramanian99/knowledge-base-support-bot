@@ -54,7 +54,7 @@ def list_session_documents(session_id: str) -> list[dict]:
     supabase = get_supabase()
     result = (
         supabase.table("session_documents")
-        .select("documents(id, original_name, is_default, status)")
+        .select("documents(id, storage_path, original_name, content_type, is_default, status)")
         .eq("session_id", session_id)
         .order("created_at")
         .execute()
