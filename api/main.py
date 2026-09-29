@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import db
 from app.answer import answer_question
 from app.config import settings
+from app.ingest import ingest_document
 from app.models import (
     DocQuery,
     DocumentOut,
@@ -157,14 +158,22 @@ def complete_upload(doc_id: UUID, session_id: str = Depends(get_session)):
         db.delete_document_row(doc_id)
         raise HTTPException(413, "File too large")
 
-    # TODO: enqueue chunking + embedding here; "pending" until that exists.
+    # Chunk and embed before answering, so the doc is queryable once this returns.
     db.set_document_status(doc_id, "pending")
-    return {"status": "pending"}
+    try:
+        chunk_count = ingest_document(doc)
+    except Exception as err:
+        print(f"ingest failed for {doc_id}: {err!r}")
+        db.set_document_status(doc_id, "failed")
+        raise HTTPException(422, "Could not read this document")
+
+    db.set_document_status(doc_id, "ready")
+    return {"status": "ready", "chunks": chunk_count}
 
 
 @app.post("/query", response_model=QueryAnswer)
 def query_from_chat(query: DocQuery, session_id: str = Depends(get_session)):
-    """Answer from the session's documents. Files still uploading are skipped."""
+    """Answer from the session's documents. Only fully ingested files are searched."""
     question = query.query.strip()
     if not question:
         raise HTTPException(422, "Question is empty")
@@ -172,7 +181,7 @@ def query_from_chat(query: DocQuery, session_id: str = Depends(get_session)):
     docs = [
         doc
         for doc in db.list_session_documents(session_id)
-        if doc["status"] != "awaiting_upload"
+        if doc["status"] == "ready"
     ]
     if not docs:
         raise HTTPException(409, "Add a document before asking a question")

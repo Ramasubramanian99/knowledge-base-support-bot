@@ -1,5 +1,3 @@
-"""Supabase table access. Thin wrappers so the routes stay readable."""
-
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -13,7 +11,6 @@ def _now() -> datetime:
 
 
 def create_session() -> str:
-    """Create a session and link every default document to it."""
     supabase = get_supabase()
     expires_at = _now() + timedelta(hours=settings.session_ttl_hours)
 
@@ -63,7 +60,6 @@ def list_session_documents(session_id: str) -> list[dict]:
 
 
 def unlink_document(session_id: str, document_id: UUID) -> bool:
-    """Drop the session's link to a document. The file and row are left alone."""
     supabase = get_supabase()
     result = (
         supabase.table("session_documents")
@@ -76,7 +72,6 @@ def unlink_document(session_id: str, document_id: UUID) -> bool:
 
 
 def count_session_uploads(session_id: str) -> int:
-    """Uploads this session owns. Their storage paths sit under the session id."""
     supabase = get_supabase()
     result = (
         supabase.table("documents")
@@ -93,7 +88,7 @@ def is_session_upload(session_id: str, doc: dict) -> bool:
 
 
 def create_pending_document(session_id: str, filename: str, content_type: str, size: int) -> dict:
-    """Reserve a document row and a storage path for an upload that has not happened yet."""
+   
     supabase = get_supabase()
     doc_id = uuid4()
     # Never trust the client's filename in the path.
@@ -124,7 +119,7 @@ def get_session_document(session_id: str, document_id: UUID) -> dict | None:
     supabase = get_supabase()
     result = (
         supabase.table("session_documents")
-        .select("documents(id, storage_path, original_name, is_default, status)")
+        .select("documents(id, storage_path, original_name, content_type, is_default, status)")
         .eq("session_id", session_id)
         .eq("document_id", str(document_id))
         .execute()
@@ -144,3 +139,35 @@ def set_document_status(document_id: UUID, status: str) -> None:
 def delete_document_row(document_id: UUID) -> None:
     supabase = get_supabase()
     supabase.table("documents").delete().eq("id", str(document_id)).execute()
+
+
+def list_default_documents() -> list[dict]:
+    supabase = get_supabase()
+    result = (
+        supabase.table("documents")
+        .select("id, storage_path, original_name, content_type")
+        .eq("is_default", True)
+        .execute()
+    )
+    return result.data
+
+
+def replace_document_chunks(document_id: UUID | str, rows: list[dict]) -> None:
+    supabase = get_supabase()
+    supabase.table("document_chunks").delete().eq("document_id", str(document_id)).execute()
+    supabase.table("document_chunks").insert(
+        [{**row, "document_id": str(document_id)} for row in rows]
+    ).execute()
+
+
+def match_chunks(query_embedding: list[float], document_ids: list[str], k: int) -> list[dict]:
+    supabase = get_supabase()
+    result = supabase.rpc(
+        "match_document_chunks",
+        {
+            "query_embedding": query_embedding,
+            "doc_ids": document_ids,
+            "match_count": k,
+        },
+    ).execute()
+    return result.data
