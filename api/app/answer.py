@@ -1,10 +1,6 @@
-
-
-from google.genai import types
-
 from app import db
 from app.config import settings
-from app.gemini import embed, get_gemini
+from app.gemini import embed, generate
 
 SYSTEM_INSTRUCTION = """\
 You are a customer service assistant. Answer the user's question using only
@@ -30,9 +26,4 @@ def answer_question(question: str, docs: list[dict]) -> str:
         + f'>\n{hit["content"]}\n</excerpt>'
         for hit in hits
     ]
-    response = get_gemini().models.generate_content(
-        model=settings.gemini_model,
-        contents="\n\n".join(sections) + f"\n\nQuestion: {question}",
-        config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION),
-    )
-    return response.text or ""
+    return generate("\n\n".join(sections) + f"\n\nQuestion: {question}", SYSTEM_INSTRUCTION)

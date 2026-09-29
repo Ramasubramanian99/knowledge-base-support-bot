@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     supabase_key: str  # anon key for client-facing, service_role for server-trusted ops
     gemini_api_key: str
     gemini_model: str = "gemini-3.6-flash"
+    gemini_fallback_model: str = "gemini-3.8-flash"
 
     # Must match the vector(768) column in migrations/005_document_chunks.sql.
     embedding_model: str = "gemini-embedding-001"
