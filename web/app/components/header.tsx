@@ -4,7 +4,8 @@ import { Link } from "react-router"
 
 export default function Header() {
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    // Fixed height: the page is a flex column and the chat window takes the rest.
+    <Box sx={{ flexShrink: 0 }}>
 
       <AppBar position="static">
         <Toolbar >
