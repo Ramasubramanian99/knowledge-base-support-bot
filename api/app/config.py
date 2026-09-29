@@ -6,6 +6,16 @@ class Settings(BaseSettings):
     gemini_api_key: str
     gemini_model: str = "gemini-3.6-flash"
 
+    # Must match the vector(768) column in migrations/005_document_chunks.sql.
+    embedding_model: str = "gemini-embedding-001"
+    embedding_dim: int = 768
+    chunk_size: int = 1000
+    chunk_overlap: int = 150
+    retrieval_k: int = 5
+    # Free tier allows 100 embedded texts per minute per project. Raise this
+    # when the key moves to a paid tier.
+    embed_requests_per_minute: int = 100
+
     # Storage bucket holding both the default docs and session uploads.
     storage_bucket: str = "RAG_files"
 
