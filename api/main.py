@@ -1,8 +1,10 @@
+import traceback
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app import db
 from app.answer import answer_question
@@ -30,6 +32,18 @@ MAX_UPLOADS = 5  # per session, on top of the shared defaults
 VIEW_URL_TTL_SECONDS = 300
 
 app = FastAPI()
+
+
+# Registered before CORS so CORS wraps it. Starlette's own 500 response is built
+# outside CORS, so the browser saw a CORS failure instead of the real error.
+@app.middleware("http")
+async def unhandled_errors_as_json(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception:
+        traceback.print_exc()
+        return JSONResponse({"detail": "Something went wrong, please try again"}, status_code=500)
+
 
 # Credentialed requests need explicit origins; "*" is rejected by browsers here.
 app.add_middleware(
@@ -120,9 +134,7 @@ def init_upload(req: InitUpload, session_id: str = Depends(get_session)):
     reserved = db.create_pending_document(
         session_id, req.filename, req.content_type, req.size
     )
-    print(reserved)
     storage_path = reserved["storage_path"]
-    print(storage_path)
     signed = (
         get_supabase()
         .storage.from_(settings.storage_bucket)

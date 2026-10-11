@@ -28,7 +28,7 @@ type QueryBoxProps = {
 };
 
 export default function QueryBox({ onSend, sending }: QueryBoxProps) {
-  const { docs, uploading, error, canUpload, openDoc, removeDoc, uploadDoc } = useSessionDocs();
+  const { docs, uploading, error, canUpload, atLimit, openDoc, removeDoc, uploadDoc } = useSessionDocs();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const canSend = query.trim().length > 0 && !sending;
@@ -105,7 +105,13 @@ export default function QueryBox({ onSend, sending }: QueryBoxProps) {
               startAdornment: (
                 <InputAdornment position="start">
                   <Tooltip
-                    title={canUpload ? "Attach a PDF or DOCX" : `Upload limit reached (${MAX_UPLOADS} per session). Remove one to add another.`}
+                    title={
+                      atLimit
+                        ? `Upload limit reached (${MAX_UPLOADS} per session). Remove one to add another.`
+                        : canUpload
+                          ? "Attach a PDF or DOCX"
+                          : "Loading documents…"
+                    }
                   >
                     {/* Span keeps the tooltip working while the button is disabled. */}
                     <span>

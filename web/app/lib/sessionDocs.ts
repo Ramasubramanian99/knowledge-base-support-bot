@@ -24,6 +24,22 @@ function contentTypeFor(file: File): string | undefined {
   return dot === -1 ? undefined : CONTENT_TYPES[file.name.slice(dot).toLowerCase()];
 }
 
+type DocsResponse = { documents: SessionDoc[] };
+
+const fetchDocs = (): Promise<DocsResponse> =>
+  api("/session/documents").then((response) => response.json());
+
+// The first call has no cookie, so it creates the session. StrictMode runs the
+// mount effect twice in dev, and two cookie-less calls would create two
+// sessions and swap the cookie mid-upload. Mounts in the same tick share one.
+let firstFetch: Promise<DocsResponse> | null = null;
+function fetchDocsOnMount(): Promise<DocsResponse> {
+  firstFetch ??= fetchDocs().finally(() => {
+    firstFetch = null;
+  });
+  return firstFetch;
+}
+
 /**
  * The session's document list, served by the API. The session itself is
  * created server-side on the first call and lives in an HttpOnly cookie.
@@ -35,10 +51,9 @@ export function useSessionDocs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (onMount = false) => {
     try {
-      const response = await api("/session/documents");
-      const data = await response.json();
+      const data = await (onMount ? fetchDocsOnMount() : fetchDocs());
       setDocs(data.documents);
       setError(null);
     } catch (err) {
@@ -49,7 +64,7 @@ export function useSessionDocs() {
   }, []);
 
   useEffect(() => {
-    refresh();
+    refresh(true);
   }, [refresh]);
 
   const removeDoc = useCallback(async (id: string) => {
@@ -65,7 +80,9 @@ export function useSessionDocs() {
 
   // Defaults are shared and don't count; in-flight uploads do.
   const uploadCount = docs.filter((doc) => !doc.is_default).length + uploading.length;
-  const canUpload = uploadCount < MAX_UPLOADS;
+  const atLimit = uploadCount >= MAX_UPLOADS;
+  // Wait for the first load: it sets the session cookie the upload calls rely on.
+  const canUpload = !loading && !atLimit;
 
   const openDoc = useCallback(async (id: string) => {
     // Open the tab now, while we're still inside the click: browsers block
@@ -90,7 +107,7 @@ export function useSessionDocs() {
   const uploadDoc = useCallback(async (file: File) => {
     setError(null);
     if (!canUpload) {
-      setError(`You can upload up to ${MAX_UPLOADS} files per session`);
+      if (atLimit) setError(`You can upload up to ${MAX_UPLOADS} files per session`);
       return;
     }
     const contentType = contentTypeFor(file);
@@ -140,7 +157,7 @@ export function useSessionDocs() {
       });
       await refresh();
     }
-  }, [canUpload, refresh]);
+  }, [atLimit, canUpload, refresh]);
 
-  return { docs, uploading, loading, error, canUpload, openDoc, removeDoc, uploadDoc };
+  return { docs, uploading, loading, error, canUpload, atLimit, openDoc, removeDoc, uploadDoc };
 }
